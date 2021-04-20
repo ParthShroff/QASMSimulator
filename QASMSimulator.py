@@ -71,10 +71,8 @@ def main():
         for j in range(len(stateArray[i])):
             if int(stateArray[i][j]) == 0:
                 prob = prob * np.square(qubitArray[len(finalOutputQubits)-1-j][0, 0])
-                print("the prob is: " + str(prob))
             if int(stateArray[i][j]) == 1:
                 prob = prob * np.square(qubitArray[len(finalOutputQubits)-1-j][1, 0])
-                print("the prob is: " + str(prob))
         shotArray.append(np.multiply(int(shots), prob))
 
     for i in range(len(stateArray)):
