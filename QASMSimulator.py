@@ -44,7 +44,6 @@ def main():
     filepath = argv[1]
     shots = argv[2]
     with open(filepath) as fp:
-        cnt = 0
         for line in fp:
             curTokList = tokenizer(line)
             for i in range(len(curTokList)):
@@ -93,6 +92,8 @@ def applyGate(gate, qIndex):
         hadamard = 1. / np.sqrt(2) * np.array([[1, 1],
                                                [1, -1]])
         qubitArray[int(qIndex)] = np.matmul(hadamard, qubitArray[int(qIndex)])
+    elif gate == 'id':
+        qubitArray[int(qIndex)] = qubitArray[int(qIndex)]
     elif gate == 'x':
         xGate = np.array([[0, 1],
                             [1, 0]])
@@ -108,6 +109,10 @@ def applyGate(gate, qIndex):
     elif gate == 't':
         tGate = np.array([[1, 0],
                         [0, np.exp(np.pi*1j/4)]])
+        qubitArray[int(qIndex)] = np.matmul(tGate, qubitArray[int(qIndex)])
+    elif gate == 'tdg':
+        tGate = np.array([[1, 0],
+                        [0, np.exp(-np.pi*1j/4)]])
         qubitArray[int(qIndex)] = np.matmul(tGate, qubitArray[int(qIndex)])
     elif gate == 's':
         sGate = np.array([[1, 0],
@@ -164,7 +169,7 @@ def tokenizer(inputLine):
 
 def customDelim(input):
     inputString = input
-    for delim in ',;':
+    for delim in ',;()':
         inputString = inputString.replace(delim, ' ')
     return inputString.split()
 
