@@ -47,7 +47,6 @@ def main():
             curTokList = tokenizer(line)
             for i in range(len(curTokList)):
                 tok = curTokList[i]
-                print("The type is: "+str(tok.getType())+" and the value is: "+tok.getValue())
                 if tok.getType() == Type.INV:
                     continue
                 elif tok.getType() == Type.QREG:
@@ -61,7 +60,10 @@ def main():
                 else:
                     continue
     for i in range(len(finalOutputQubits)):
-        print(finalOutputQubits[i])
+        print("The state for qubit " + str(i) + " is: \n" + str(finalOutputQubits[i]))
+
+
+
     fp.close()
 
 
@@ -76,6 +78,30 @@ def applyGate(gate, qIndex):
         hadamard = 1. / np.sqrt(2) * np.array([[1, 1],
                                                [1, -1]])
         qubitArray[int(qIndex)] = np.matmul(hadamard, qubitArray[int(qIndex)])
+    elif gate == 'x':
+        xGate = np.array([[0, 1],
+                            [1, 0]])
+        qubitArray[int(qIndex)] = np.matmul(xGate, qubitArray[int(qIndex)])
+    elif gate == 'y':
+        yGate = np.array([[0, -1j],
+                            [1j, 0]])
+        qubitArray[int(qIndex)] = np.matmul(yGate, qubitArray[int(qIndex)])
+    elif gate == 'z':
+        zGate = np.array([[1, 0],
+                            [0, -1]])
+        qubitArray[int(qIndex)] = np.matmul(zGate, qubitArray[int(qIndex)])
+    elif gate == 't':
+        tGate = np.array([[1, 0],
+                        [0, np.exp(np.pi*1j/4)]])
+        qubitArray[int(qIndex)] = np.matmul(tGate, qubitArray[int(qIndex)])
+    elif gate == 's':
+        sGate = np.array([[1, 0],
+                        [0, np.exp(np.pi*1j/2)]])
+        qubitArray[int(qIndex)] = np.matmul(sGate, qubitArray[int(qIndex)])
+    elif gate == 'sdg':
+        sdgGate = np.array([[1, 0],
+                        [0, np.exp(-1*np.pi*1j/2)]])
+        qubitArray[int(qIndex)] = np.matmul(sdgGate, qubitArray[int(qIndex)])
 
 
 def initializeQubitArray(length):
