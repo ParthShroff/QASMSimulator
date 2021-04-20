@@ -75,7 +75,7 @@ def main():
         shotArray.append(np.multiply(int(shots), prob))
 
     for i in range(len(stateArray)):
-        print("The state for qubit |" + stateArray[i] + "> and the theoretical frequency is: \n" + str(shotArray[i]))
+        print("The state for qubit |" + stateArray[i] + "> and the theoretical frequency is: \n" + str(np.round(shotArray[i], 2)))
 
     fp.close()
 
