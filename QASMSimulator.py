@@ -1,6 +1,7 @@
 from sys import argv
 from enum import Enum
 import numpy as np
+import itertools
 
 qubitArray = []
 finalOutputQubits = []
@@ -8,6 +9,7 @@ finalOutputQubits = []
 gateArray = []
 qubitIndexArray = []
 
+shotArray = []
 
 class Type(Enum):
     INV = 1
@@ -62,9 +64,24 @@ def main():
     for i in range(len(finalOutputQubits)):
         print("The state for qubit " + str(i) + " is: \n" + str(finalOutputQubits[i]))
 
+    stateArray = list(["".join(x) for x in itertools.product(["0","1"], repeat=len(finalOutputQubits))])
 
+    for i in range(len(stateArray)):
+        prob = 1
+        for j in range(len(stateArray[i])):
+            if int(stateArray[i][j]) == 0:
+                prob = prob * np.square(qubitArray[len(finalOutputQubits)-1-j][0, 0])
+                print("the prob is: " + str(prob))
+            if int(stateArray[i][j]) == 1:
+                prob = prob * np.square(qubitArray[len(finalOutputQubits)-1-j][1, 0])
+                print("the prob is: " + str(prob))
+        shotArray.append(np.multiply(int(shots), prob))
+
+    for i in range(len(stateArray)):
+        print("The state for qubit |" + stateArray[i] + "> and the theoretical frequency is: \n" + str(shotArray[i]))
 
     fp.close()
+
 
 
 def measureQubit(qubitIndex, cbitIndex):
