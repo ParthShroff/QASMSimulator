@@ -54,7 +54,7 @@ def main():
                     initializeQubitArray(int(curTokList[i + 1].getValue()))
                 elif tok.getType() == Type.GATE:
                     gateArray.append(tok.getValue())
-                elif tok.getType() == Type.QUBIT and curTokList[i - 1].getType() == Type.GATE:
+                elif (tok.getType() == Type.QUBIT and curTokList[i - 1].getType() == Type.GATE):
                     qubitIndexArray.append(tok.getValue())
                 elif tok.getType() == Type.MEASURE and curTokList[i + 2].getType() == Type.ARROW:
                     measureQubit(curTokList[i + 1].getValue(), curTokList[i + 3].getValue())
@@ -104,7 +104,7 @@ def applyGate(gate, qIndex):
         qubitArray[int(qIndex)] = np.matmul(yGate, qubitArray[int(qIndex)])
     elif gate == 'z':
         zGate = np.array([[1, 0],
-                            [0, -1]])
+                        [0, -1]])
         qubitArray[int(qIndex)] = np.matmul(zGate, qubitArray[int(qIndex)])
     elif gate == 't':
         tGate = np.array([[1, 0],
@@ -122,6 +122,14 @@ def applyGate(gate, qIndex):
         sdgGate = np.array([[1, 0],
                         [0, np.exp(-1*np.pi*1j/2)]])
         qubitArray[int(qIndex)] = np.matmul(sdgGate, qubitArray[int(qIndex)])
+    elif gate == 'sx':
+        sxGate = 1/2 * np.array([[1+1j, 1-1j],
+                                 [1-1j, 1+1j]])
+        qubitArray[int(qIndex)] = np.matmul(sxGate, qubitArray[int(qIndex)])
+    elif gate == 'sxdg':
+        sxdgGate = 1/2 * np.array([[1-1j, 1+1j],
+                                 [1+1j, 1-1j]])
+        qubitArray[int(qIndex)] = np.matmul(sxdgGate, qubitArray[int(qIndex)])
 
 
 def initializeQubitArray(length):
