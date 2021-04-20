@@ -2,7 +2,11 @@ from sys import argv
 from enum import Enum
 import numpy as np
 
+qubitArray = []
+finalOutputQubits = []
 
+gateArray = []
+qubitIndexArray = []
 
 
 class Type(Enum):
@@ -36,19 +40,52 @@ def main():
     if len(argv) < 3:
         print(f"usage: {argv[0]} <file>")
     filepath = argv[1]
+    shots = argv[2]
     with open(filepath) as fp:
         cnt = 0
         for line in fp:
             curTokList = tokenizer(line)
-            for tok in curTokList:
-                print("The token type is: " + str(tok.getType()) + " and the token value is: " + tok.getValue())
+            for i in range(len(curTokList)):
+                tok = curTokList[i]
+                print("The type is: "+str(tok.getType())+" and the value is: "+tok.getValue())
+                if tok.getType() == Type.INV:
+                    continue
+                elif tok.getType() == Type.QREG:
+                    initializeQubitArray(int(curTokList[i + 1].getValue()))
+                elif tok.getType() == Type.GATE:
+                    gateArray.append(tok.getValue())
+                elif tok.getType() == Type.QUBIT and curTokList[i - 1].getType() == Type.GATE:
+                    qubitIndexArray.append(tok.getValue())
+                elif tok.getType() == Type.MEASURE and curTokList[i + 2].getType() == Type.ARROW:
+                    measureQubit(curTokList[i + 1].getValue(), curTokList[i + 3].getValue())
+                else:
+                    continue
+    for i in range(len(finalOutputQubits)):
+        print(finalOutputQubits[i])
+    fp.close()
 
 
+def measureQubit(qubitIndex, cbitIndex):
+    for i in range(len(gateArray)):
+        if int(qubitIndexArray[i]) == int(qubitIndex):
+            applyGate(gateArray[i], int(qubitIndex))
+    finalOutputQubits.insert(int(cbitIndex), qubitArray[int(qubitIndex)])
+
+def applyGate(gate, qIndex):
+    if gate == 'h':
+        hadamard = 1. / np.sqrt(2) * np.array([[1, 1],
+                                               [1, -1]])
+        qubitArray[int(qIndex)] = np.matmul(hadamard, qubitArray[int(qIndex)])
+
+
+def initializeQubitArray(length):
+    for i in range(length):
+        qubitArray.append(np.array([[1], [0]]))
 
 
 def tokenizer(inputLine):
     tokenList = []
-    gates = ['h', 'x', 't', 'tdg', 'sdg', 's', 'z', 'p', 'rz', 'rx', 'ry', 'rxx', 'rzz', 'sx', 'sxdg']
+    gates = ['h', 'x', 't', 'tdg', 'sdg', 's', 'z', 'p', 'rz', 'rx', 'ry', 'rxx', 'rzz', 'sx', 'sxdg', 'id']
     splited = customDelim(inputLine)
     for token in splited:
         if token in gates:
@@ -82,6 +119,7 @@ def tokenizer(inputLine):
 
         tokenList.append(newToken)
     return tokenList
+
 
 def customDelim(input):
     inputString = input
