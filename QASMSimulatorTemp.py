@@ -54,6 +54,9 @@ def getGateMatrix(gate_type):
     if gate_type == GateType.IDENTITY:
         return np.array([[1, 0],
                          [0, 1]])
+    elif gate_type == GateType.PAULI_X:
+        return np.array([[0, 1], 
+                         [1, 0]])
     elif gate_type == GateType.HADAMARD:
         return (1. / np.sqrt(2)) * np.array([[1,  1],
                                              [1, -1]])
@@ -118,10 +121,10 @@ def applyCGate(gate):
     # useful matrices
     identity = np.array([[1, 0],
                          [0, 1]])
-    zero_proj = np.array([1, 0], # |0><0|
-                         [0, 0])
-    one_proj  = np.array([0, 0], # |1><1|
-                         [0, 1])
+    zero_proj = np.array([[1, 0], # |0><0|
+                         [0, 0]])
+    one_proj  = np.array([[0, 0], # |1><1|
+                         [0, 1]])
 
     # transform gate into the 2^n by 2^n matrix
     # based on the logic provided by: 
@@ -146,7 +149,7 @@ def applyCGate(gate):
         one_proj_term = np.kron(one_proj_term, one_proj_switch_factor)
 
     # padding for qubits between the control and target
-    for _ in range(max(target_index, control_index) - min(target_index, control_index) - 1):
+    for _ in range(max(target_index, control_index) - min(target_index, control_index) - 2): #TODO this part is not correct, because case for n = 3 doesn't work
         zero_proj_term = np.kron(zero_proj_term, identity)
         one_proj_term = np.kron(one_proj_term, identity)
 
@@ -155,21 +158,31 @@ def applyCGate(gate):
     one_proj_term = np.kron(one_proj_term, identity if control_index > target_index else one_proj)
 
     # pad the rest of the qubits
-    for _ in range(max(target_index, control_index)): # pad rest of the gate
+    for _ in range(max(target_index, control_index)-1): # pad rest of the gate
         zero_proj_term = np.kron(zero_proj_term, identity)
         one_proj_term = np.kron(one_proj_term, identity)
 
     resultant_matrix = zero_proj_term + one_proj_term
 
     # matrix multiply with the quantum state
-    global
+    global q_state
     q_state = np.matmul(resultant_matrix, q_state)
 
 
 # For simple by-hand testing:
 def main():
     global n
-    #TODO make test cases for CNOT
+    n = 2
+    init_state()
+    print("   Initial state: " + str(list(np.round(q_state, 3))))
+    H0 = Gate(GateType.HADAMARD, 0, False, -1, None)
+    X1 = Gate(GateType.PAULI_X, 1, False, -1, None)
+    CX02 = Gate(GateType.PAULI_X, 1, True, 0, None)
+    applySingleGate(H0)
+    applySingleGate(X1)
+    applyCGate(CX02)
+    print("   Final state: " + str(list(np.round(q_state, 3))))
+
 
     # single qubit gate, multiple positions test
     # n_max = 4 # total qubits to test, 1 through n_max
