@@ -1,7 +1,6 @@
 from sys import argv
 from enum import Enum
 import numpy as np
-import itertools
 
 # stores the amplitudes of all possible quantum states, like |000> and |101> for a 3 qubit state
 q_state = []
@@ -28,19 +27,24 @@ class GateType(Enum):
 #   parameters  - (List) stores the various parameters for a UNITARY or rotate gate, None otherwise
 class Gate:
     def __init__(self, gtype, target, is_control, control, parameters):
-        self.gtype = gate_type
+        self.gtype = gtype
         self.target = target
         self.is_control = is_control
         self.control = control
         self.parameters = parameters
+
 
 # init_state() - Initializes the simulated quantum state with the |0> state on each qubit
 #                Uses the n global variable, which stores the number of represented qubits
 #   Effect: initializes q_state with 2^n elements, first element is the |00...0> state
 #   Return: nothing
 def init_state():
+    if n <= 0 or type(n) != int:
+        raise Exception("init_state(): n must be initialized with a positive integer")
+    global q_state
     q_state = np.zeros(2 ** n, dtype=complex)
     q_state[0] = 1 + 0j
+
 
 # getGateType() - returns the matrix representation of a quantum gate
 #   Parameter: gate_type - (enum GateType) a quantum gate
@@ -54,6 +58,7 @@ def getGateMatrix(gate_type):
                                              [1, -1]])
     else:
         raise Exception("getGateMatrix(): unsupported Gate operation (" + str(gate_type) + ")")
+
 
 # applySingleGate() - Applies a single-qubit gate to the quantum state
 #   Parameters: gate - (type Gate) the gate to apply
@@ -86,6 +91,7 @@ def applySingleGate(gate):
         resultant_matrix = np.kron(resultant_matrix, identity)
 
     # matrix multiply with the quantum state
+    global q_state
     q_state = np.matmul(resultant_matrix, q_state)
 
 
