@@ -54,12 +54,18 @@ def getGateMatrix(gate_type):
     if gate_type == GateType.IDENTITY:
         return np.array([[1, 0],
                          [0, 1]])
-    elif gate_type == GateType.PAULI_X:
-        return np.array([[0, 1], 
-                         [1, 0]])
     elif gate_type == GateType.HADAMARD:
         return (1. / np.sqrt(2)) * np.array([[1,  1],
-                                             [1, -1]])
+                                             [1, -1]], dtype=complex)
+    elif gate_type == GateType.PAULI_X:
+        return np.array([[0, 1], 
+                         [1, 0]], dtype=complex)
+    elif gate_type == GateType.PAULI_Y:
+        return np.array([[0, -1j], 
+                         [1j, 0]], dtype=complex)
+    elif gate_type == GateType.PAULI_Z:
+        return np.array([[1,  0], 
+                         [0, -1]], dtype=complex)
     else:
         raise Exception("getGateMatrix(): unsupported Gate operation (" + str(gate_type) + ")")
 
@@ -128,7 +134,7 @@ def applyCGate(gate):
 
     # transform gate into the 2^n by 2^n matrix
     # based on the logic provided by: 
-    # https://quantumcomputing.stackexchange.com/questions/4252/how-to-derive-the-cnot-matrix-for-a-3-qubit-system-where-the-control-target-qu/4254#4254
+    # https://quantumcomputing.stackexchange.com/questions/4252/how-to-derive-the-cnot-matrix-for-a-3-qubit-system-where-the-control-target-qu/4254
 
     # the switch factor is either the 'control' or the 'target'
     zero_proj_switch_factor = zero_proj if control_index > target_index else identity
@@ -149,16 +155,16 @@ def applyCGate(gate):
         one_proj_term = np.kron(one_proj_term, one_proj_switch_factor)
 
     # padding for qubits between the control and target
-    for _ in range(max(target_index, control_index) - min(target_index, control_index) - 2): #TODO this part is not correct, because case for n = 3 doesn't work
+    for _ in range(max(target_index, control_index) - min(target_index, control_index) - 1): 
         zero_proj_term = np.kron(zero_proj_term, identity)
         one_proj_term = np.kron(one_proj_term, identity)
 
     # multiply the opposite switch factor, target or control
     zero_proj_term = np.kron(zero_proj_term, identity if control_index > target_index else zero_proj)
-    one_proj_term = np.kron(one_proj_term, identity if control_index > target_index else one_proj)
+    one_proj_term = np.kron(one_proj_term, gate_matrix if control_index > target_index else one_proj)
 
     # pad the rest of the qubits
-    for _ in range(max(target_index, control_index)-1): # pad rest of the gate
+    for _ in range(min(target_index, control_index)): # pad rest of the gate
         zero_proj_term = np.kron(zero_proj_term, identity)
         one_proj_term = np.kron(one_proj_term, identity)
 
@@ -172,15 +178,20 @@ def applyCGate(gate):
 # For simple by-hand testing:
 def main():
     global n
-    n = 2
+    n = 3
     init_state()
-    print("   Initial state: " + str(list(np.round(q_state, 3))))
+    print("   Initial state: " + str(list(np.round(q_state, 3)))) #Example from slide pg 15 for Multi-qubit measurements
     H0 = Gate(GateType.HADAMARD, 0, False, -1, None)
-    X1 = Gate(GateType.PAULI_X, 1, False, -1, None)
-    CX02 = Gate(GateType.PAULI_X, 1, True, 0, None)
+    CX01 = Gate(GateType.PAULI_X, 1, True, 0, None)
+    CX12 = Gate(GateType.PAULI_X, 2, True, 1, None)
+    CX02 = Gate(GateType.PAULI_X, 2, True, 0, None)
+    Z2 = Gate(GateType.PAULI_Z, 2, False, -1, None)
     applySingleGate(H0)
-    applySingleGate(X1)
+    applyCGate(CX01)
+    applySingleGate(H0)
+    applyCGate(CX12)
     applyCGate(CX02)
+    applySingleGate(Z2)
     print("   Final state: " + str(list(np.round(q_state, 3))))
 
 
