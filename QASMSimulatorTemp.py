@@ -1,6 +1,7 @@
 from sys import argv
 from enum import Enum
 import numpy as np
+from itertools import combinations #this is for testing only
 
 # stores the amplitudes of all possible quantum states, like |000> and |101> for a 3 qubit state
 q_state = []
@@ -81,7 +82,7 @@ def applySingleGate(gate):
     # transform gate into the 2^n by 2^n matrix
     resultant_matrix = identity if target_index < n - 1 else gate_matrix
 
-    for _ in range(n - target_index - 1): # pad operator from the front
+    for _ in range(n - target_index - 2): # pad operator from the front
         resultant_matrix = np.kron(resultant_matrix, identity)
     
     if target_index < n - 1:
@@ -93,6 +94,29 @@ def applySingleGate(gate):
     # matrix multiply with the quantum state
     global q_state
     q_state = np.matmul(resultant_matrix, q_state)
+
+
+# For simple by-hand testing:
+def main():
+    global n
+    n_max = 4 # total qubits to test, 1 through n_max
+    test_gates = [GateType.IDENTITY, GateType.HADAMARD] # the gates to test
+    for i in range(1, n_max + 1):
+        n = i
+        print(str(i) + "-Qubit State Test")
+        for test_gate in test_gates:
+            print("    " + str(test_gate))
+            for j in range(1, i+1):
+                combination = list(combinations(list(range(i)), j))
+
+                for k in range(len(combination)):
+                    print("        Applied to: " + str(combination[k]))
+                    init_state()
+                    print("            Initial state: " + str(list(np.round(q_state, 3))))
+                    for l in combination[k]:
+                        gate = Gate(test_gate, l, False, -1, None)
+                        applySingleGate(gate)
+                    print("            Final state: " + str(list(np.round(q_state, 3))))
 
 
 if __name__ == '__main__':
