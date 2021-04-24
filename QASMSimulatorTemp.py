@@ -87,9 +87,10 @@ def init_state():
 
 
 # getGateType() - returns the matrix representation of a quantum gate
-#   Parameter: gate_type - (enum GateType) a quantum gate
+#   Parameter: gate - (Gate) a quantum gate
 #   Return: (2 dimensional np.array) the matrix representation of gate_type
-def getGateMatrix(gate_type):
+def getGateMatrix(gate):
+    gate_type = gate.gtype
     if gate_type == GateType.IDENTITY:
         return np.array([[1, 0],
                          [0, 1]])
@@ -105,6 +106,28 @@ def getGateMatrix(gate_type):
     elif gate_type == GateType.PAULI_Z:
         return np.array([[1, 0],
                          [0, -1]], dtype=complex)
+    elif gate_type == GateType.ROTATE_X:
+        theta = gate.parameters[0]
+        return np.array([[np.cos(theta / 2), -1j*np.sin(theta / 2)],
+                        [1j*np.sin(theta / 2), np.cos(theta / 2)]], dtype=complex)
+    elif gate_type == GateType.ROTATE_Y:
+        theta = gate.parameters[0]
+        return np.array([[np.cos(theta / 2), -np.sin(theta / 2)],
+                        [np.sin(theta / 2), np.cos(theta / 2)]], dtype=complex)
+    elif gate_type == GateType.ROTATE_Z:
+        phi = gate.parameters[0]
+        return np.array([[np.exp(-1j*phi/2), 0],
+                        [0, np.exp(1j*phi/2)]], dtype=complex)
+    elif gate_type == GateType.UNITARY:
+        theta = gate.parameters[0]
+        phi = gate.parameters[1]
+        lmbda = gate.parameters[2]
+        first = np.cos(theta / 2)
+        second = -np.exp(1j * lmbda)*np.sin(theta / 2)
+        third = np.exp(1j* phi)*np.sin(theta / 2)
+        fourth = np.exp(1j * (lmbda + phi))*np.cos(theta/2)
+        return np.array([[first, second],
+                         [third, fourth ]], dtype=complex)
     else:
         raise Exception("getGateMatrix(): unsupported Gate operation (" + str(gate_type) + ")")
 
@@ -121,7 +144,7 @@ def applySingleGate(gate):
         raise Exception("applySingleGate(): target (" + str(target_index)
                         + ") must be less than n (" + str(n) + ")")
     # Select the gate
-    gate_matrix = getGateMatrix(gate.gtype)
+    gate_matrix = getGateMatrix(gate)
 
     # identity matrix
     identity = np.array([[1, 0],
@@ -162,7 +185,7 @@ def applyCGate(gate):
         raise Exception("applyCGate(): target (" + str(target_index) + ") != control (" + str(control_index) + ")")
 
     # Select the gate
-    gate_matrix = getGateMatrix(gate.gtype)  # gate with GateType PAULI_X and is_control=True == CNOT
+    gate_matrix = getGateMatrix(gate)  # gate with GateType PAULI_X and is_control=True == CNOT
 
     # useful matrices
     identity = np.array([[1, 0],
@@ -213,6 +236,15 @@ def applyCGate(gate):
     # matrix multiply with the quantum state
     global q_state
     q_state = np.matmul(resultant_matrix, q_state)
+
+
+# measure_state() - measures the entire quantum state for each possible outcome
+# assumes the QASM file applies the measurement to all qubits
+# Effect: zeros out q_state to represent a total wave function collapse
+# Return: probability array of size 2^n
+def measure_state():
+    pass #TODO
+
 
 def tokenizer(inputLine):
     tokenList = []
@@ -309,11 +341,22 @@ def result(filepath, shots):
 
 # For simple by-hand testing:
 def main():
-    if len(argv) < 3:
-        print(f"usage: {argv[0]} <file>")
-    filepath = argv[1]
-    shots = argv[2]
-    result(filepath, shots)
+    global n
+    n = 2
+    init_state()
+    print("   Initial state: " + str(list(np.round(q_state, 3)))) #Example from slide pg 15 for Multi-qubit measurements
+    H1 = Gate(GateType.HADAMARD, 1, False, -1, None)
+    CX10 = Gate(GateType.PAULI_X, 0, True, 1, None)
+    R1 = Gate(GateType.ROTATE_Y, 1, False, -1, [np.pi/4])
+    applySingleGate(H1)
+    applyCGate(CX10)
+    applySingleGate(R1)
+    print("   Final state: " + str(list(np.round(q_state, 3))))
+    # if len(argv) < 3:
+    #     print(f"usage: {argv[0]} <file>")
+    # filepath = argv[1]
+    # shots = argv[2]
+    # result(filepath, shots)
 
 if __name__ == '__main__':
     main()
