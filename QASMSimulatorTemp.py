@@ -1,7 +1,7 @@
 from sys import argv
 from enum import Enum
 import numpy as np
-from itertools import combinations  # this is for testing only
+import itertools
 
 # stores the amplitudes of all possible quantum states, like |000> and |101> for a 3 qubit state
 q_state = []
@@ -243,7 +243,20 @@ def applyCGate(gate):
 # Effect: zeros out q_state to represent a total wave function collapse
 # Return: probability array of size 2^n
 def measure_state():
-    pass #TODO
+    prob = []
+    global q_state
+    for state in q_state:
+        prob.append(np.square(state))
+    
+    # "collapse" quantum state
+    q_state = np.zeros(2**n, dtype=complex)
+
+    # print out the probabilities
+    binary_states = list(itertools.product('01', repeat=n))
+    for i in range(2**n):
+        print("Pr(|" + str(''.join(binary_states[i]) + ">) = " + str(np.real(prob[i]))))
+    
+    return prob
 
 
 def tokenizer(inputLine):
@@ -344,14 +357,15 @@ def main():
     global n
     n = 2
     init_state()
-    print("   Initial state: " + str(list(np.round(q_state, 3)))) #Example from slide pg 15 for Multi-qubit measurements
+    # print("   Initial state: " + str(list(np.round(q_state, 3)))) #Example from slide pg 15 for Multi-qubit measurements
     H1 = Gate(GateType.HADAMARD, 1, False, -1, None)
     CX10 = Gate(GateType.PAULI_X, 0, True, 1, None)
     R1 = Gate(GateType.ROTATE_Y, 1, False, -1, [np.pi/4])
     applySingleGate(H1)
     applyCGate(CX10)
     applySingleGate(R1)
-    print("   Final state: " + str(list(np.round(q_state, 3))))
+    measure_state()
+    # print("   Final state: " + str(list(np.round(q_state, 3))))
     # if len(argv) < 3:
     #     print(f"usage: {argv[0]} <file>")
     # filepath = argv[1]
