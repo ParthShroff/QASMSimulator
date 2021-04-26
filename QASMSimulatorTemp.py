@@ -350,13 +350,19 @@ def parseTheta(curTokList, i):
     j = i + 1
     tok = curTokList[j]
     prevTok = tok.getType()
-    stringToParse = str(tok.getValue())
+    if(type(tok.getValue()) == str and "pi" in tok.getValue()):
+        stringToParse = parseWithPi(tok.getValue())
+    else:
+        stringToParse = str(tok.getValue())
     global thetaIndex
     while(j < len(curTokList)):
         if(curTokList[j].getType() == Type.CONST and prevTok == Type.CONST):
             break
         else:
-            stringToParse = stringToParse + str(curTokList[j].getValue())
+            if (type(tok.getValue()) == str and "pi" in curTokList[j].getValue()):
+                stringToParse = parseWithPi(curTokList[j].getValue())
+            else:
+                stringToParse = stringToParse + str(curTokList[j].getValue())
         prevTok = curTokList[j].getType()
         j = j + 1
     thetaIndex = j
@@ -366,13 +372,19 @@ def parsePhi(curTokList, i):
     j = i + 1
     tok = curTokList[j]
     prevTok = tok.getType()
-    stringToParse = str(tok.getValue())
+    if (type(tok.getValue()) == str and "pi" in tok.getValue()):
+        stringToParse = parseWithPi(tok.getValue())
+    else:
+        stringToParse = str(tok.getValue())
     global phiIndex
     while(j < len(curTokList)):
         if(curTokList[j].getType() == Type.CONST and prevTok == Type.CONST):
             break
         else:
-            stringToParse = stringToParse + str(curTokList[j].getValue())
+            if (type(tok.getValue()) == str and "pi" in curTokList[j].getValue()):
+                stringToParse = parseWithPi(curTokList[j].getValue())
+            else:
+                stringToParse = stringToParse + str(curTokList[j].getValue())
         prevTok = curTokList[j].getType()
         j = j + 1
     phiIndex = j
@@ -382,19 +394,28 @@ def parseLambda(curTokList, i):
     j = i + 1
     tok = curTokList[j]
     prevTok = tok.getType()
-    stringToParse = str(tok.getValue())
+    if (type(tok.getValue()) == str and "pi" in tok.getValue()):
+        stringToParse = parseWithPi(tok.getValue())
+    else:
+        stringToParse = str(tok.getValue())
     j = j + 1
     while(j < len(curTokList) and (curTokList[j].getType() == Type.CONST or curTokList[j].getType() == Type.OP)):
         if(curTokList[j].getType() == Type.CONST and prevTok == Type.CONST):
             break
         else:
-            stringToParse = stringToParse + str(curTokList[j].getValue())
+            if (type(tok.getValue()) == str and "pi" in curTokList[j].getValue()):
+                stringToParse = parseWithPi(curTokList[j].getValue())
+            else:
+                stringToParse = stringToParse + str(curTokList[j].getValue())
         prevTok = curTokList[j].getType()
         j = j + 1
     return eval(stringToParse)
 
 
-
+def parseWithPi(exp):
+    index = exp.index('pi')
+    piVal = np.pi
+    return exp[0:index] + str(piVal) + exp[index+2:len(exp)]
 
 
 # For simple by-hand testing:
