@@ -276,7 +276,6 @@ def tokenizer(inputLine):
         else:
             newToken = Token(Type.INV, token)
         print("Adding the type: " + str(newToken.getType()) + " and the value " + str(newToken.getValue()))
-
         tokenList.append(newToken)
         count = count + 1
 
@@ -334,6 +333,9 @@ def result(filepath, shots):
                         theta = parseTheta(curTokList, i)
                         phi = parsePhi(curTokList, thetaIndex)
                         lmbda = parseLambda(curTokList, phiIndex)
+                        print("Theta: "+ str(theta))
+                        print("Phi: " + str(phi))
+                        print("Lambda: " + str(lmbda))
                         params = [theta, phi, lmbda]
                         tok.getValue().setParams(params)
                         applySingleGate(tok.getValue())
@@ -382,7 +384,7 @@ def parseLambda(curTokList, i):
     prevTok = tok.getType()
     stringToParse = str(tok.getValue())
     j = j + 1
-    while(j < len(curTokList)):
+    while(j < len(curTokList) and (curTokList[j].getType() == Type.CONST or curTokList[j].getType() == Type.OP)):
         if(curTokList[j].getType() == Type.CONST and prevTok == Type.CONST):
             break
         else:
