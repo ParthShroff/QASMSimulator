@@ -342,6 +342,7 @@ def result(filepath, shots):
                     else:
                         applySingleGate(tok.getValue())
                 elif tok.getType() == Type.MEASURE and curTokList[i + 2].getType() == Type.ARROW:
+                    measure_state()
                     print("   Final state: " + str(list(np.round(q_state, 3))))
                 else:
                     continue
