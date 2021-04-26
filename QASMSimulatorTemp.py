@@ -339,6 +339,11 @@ def result(filepath, shots):
                         params = [theta, phi, lmbda]
                         tok.getValue().setParams(params)
                         applySingleGate(tok.getValue())
+                    elif tok.getValue.getGType() == GateType.ROTATE_X or tok.getValue.getGType() == GateType.ROTATE_Y or tok.getValue.getGType() == GateType.ROTATE_Z:
+                        param1 = parseTheta(curTokList, i)
+                        params = [param1]
+                        tok.getValue().setParams(params)
+                        applySingleGate(tok.getValue())
                     else:
                         applySingleGate(tok.getValue())
                 elif tok.getType() == Type.MEASURE and curTokList[i + 2].getType() == Type.ARROW:
