@@ -173,7 +173,6 @@ def applyCGate(gate):
         raise Exception("applyCGate(): target (" + str(target_index) + ") != control (" + str(control_index) + ")")
 
     # Select the gate
-    gate_matrix = getGateMatrix(gate)  # gate with GateType PAULI_X and is_control=True == CNOT
     gate_matrix = getGateMatrix(gate.gtype)  # gate with GateType PAULI_X and is_control=True == CNOT
 
     # useful matrices
@@ -339,7 +338,7 @@ def result(filepath, shots):
                         params = [theta, phi, lmbda]
                         tok.getValue().setParams(params)
                         applySingleGate(tok.getValue())
-                    elif tok.getValue.getGType() == GateType.ROTATE_X or tok.getValue.getGType() == GateType.ROTATE_Y or tok.getValue.getGType() == GateType.ROTATE_Z:
+                    elif tok.getValue().getGType() == GateType.ROTATE_X or tok.getValue().getGType() == GateType.ROTATE_Y or tok.getValue().getGType() == GateType.ROTATE_Z:
                         param1 = parseTheta(curTokList, i)
                         params = [param1]
                         tok.getValue().setParams(params)
