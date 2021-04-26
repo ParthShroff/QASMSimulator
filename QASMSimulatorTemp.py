@@ -7,7 +7,8 @@ from itertools import combinations  # this is for testing only
 q_state = []
 # the number of qubits q_state represents
 n = 0
-
+thetaIndex = 0
+phiIndex = 0
 
 # GateType - an enum for the various supported gates of our QASM simulator
 class GateType(Enum):
@@ -48,6 +49,9 @@ class Gate:
     def setControl(self, control):
         self.control = control
 
+    def setParams(self, params):
+        self.parameters = params
+
 
 class Token:
     def __init__(self, type, value):
@@ -59,6 +63,7 @@ class Token:
 
     def getValue(self):
         return self.value
+
 
 class Type(Enum):
     INV = 1
@@ -73,6 +78,7 @@ class Type(Enum):
     LPARAN = 10
     RPARAN = 11
     CONST = 12
+
 
 # init_state() - Initializes the simulated quantum state with the |0> state on each qubit
 #                Uses the n global variable, which stores the number of represented qubits
@@ -89,7 +95,8 @@ def init_state():
 # getGateType() - returns the matrix representation of a quantum gate
 #   Parameter: gate_type - (enum GateType) a quantum gate
 #   Return: (2 dimensional np.array) the matrix representation of gate_type
-def getGateMatrix(gate_type):
+def getGateMatrix(gate):
+    gate_type = gate.gtype
     if gate_type == GateType.IDENTITY:
         return np.array([[1, 0],
                          [0, 1]])
@@ -105,6 +112,28 @@ def getGateMatrix(gate_type):
     elif gate_type == GateType.PAULI_Z:
         return np.array([[1, 0],
                          [0, -1]], dtype=complex)
+    elif gate_type == GateType.ROTATE_X:
+        theta = gate.parameters[0]
+        return np.array([[np.cos(theta / 2), -1j * np.sin(theta / 2)],
+                         [1j * np.sin(theta / 2), np.cos(theta / 2)]], dtype=complex)
+    elif gate_type == GateType.ROTATE_Y:
+        theta = gate.parameters[0]
+        return np.array([[np.cos(theta / 2), -np.sin(theta / 2)],
+                         [np.sin(theta / 2), np.cos(theta / 2)]], dtype=complex)
+    elif gate_type == GateType.ROTATE_Z:
+        phi = gate.parameters[0]
+        return np.array([[np.exp(-1j * phi / 2), 0],
+                         [0, np.exp(1j * phi / 2)]], dtype=complex)
+    elif gate_type == GateType.UNITARY:
+        theta = gate.parameters[0]
+        phi = gate.parameters[1]
+        lmbda = gate.parameters[2]
+        first = np.cos(theta / 2)
+        second = -np.exp(1j * lmbda) * np.sin(theta / 2)
+        third = np.exp(1j * phi) * np.sin(theta / 2)
+        fourth = np.exp(1j * (lmbda + phi)) * np.cos(theta / 2)
+        return np.array([[first, second],
+                         [third, fourth]], dtype=complex)
     else:
         raise Exception("getGateMatrix(): unsupported Gate operation (" + str(gate_type) + ")")
 
@@ -121,7 +150,7 @@ def applySingleGate(gate):
         raise Exception("applySingleGate(): target (" + str(target_index)
                         + ") must be less than n (" + str(n) + ")")
     # Select the gate
-    gate_matrix = getGateMatrix(gate.gtype)
+    gate_matrix = getGateMatrix(gate)
 
     # identity matrix
     identity = np.array([[1, 0],
@@ -162,7 +191,7 @@ def applyCGate(gate):
         raise Exception("applyCGate(): target (" + str(target_index) + ") != control (" + str(control_index) + ")")
 
     # Select the gate
-    gate_matrix = getGateMatrix(gate.gtype)  # gate with GateType PAULI_X and is_control=True == CNOT
+    gate_matrix = getGateMatrix(gate)  # gate with GateType PAULI_X and is_control=True == CNOT
 
     # useful matrices
     identity = np.array([[1, 0],
@@ -214,13 +243,26 @@ def applyCGate(gate):
     global q_state
     q_state = np.matmul(resultant_matrix, q_state)
 
+# measure_state() - measures the entire quantum state for each possible outcome
+# assumes the QASM file applies the measurement to all qubits
+# Effect: zeros out q_state to represent a total wave function collapse
+# Return: probability array of size 2^n
+def measure_state():
+    pass #TODO
+
+
 def tokenizer(inputLine):
     tokenList = []
-    gates = ['h', 'x', 't', 'tdg', 'sdg', 's', 'z', 'p', 'rz', 'rx', 'ry', 'rxx', 'rzz', 'sx', 'sxdg', 'id', 'cx']
+    gates = ['h', 'x', 't', 'tdg', 'sdg', 's', 'z', 'p', 'rz', 'rx', 'ry', 'rxx', 'rzz', 'sx', 'sxdg', 'id', 'cx', 'u']
     splited = customDelim(inputLine)
+    prevGate = 'inv'
+    prevGateIndex = -1
+    count = 0
     for token in splited:
         if token in gates:
             gateObj = parseGate(token)
+            prevGate = token
+            prevGateIndex = count
             newToken = Token(Type.GATE, gateObj)
         elif token == "->":
             newToken = Token(Type.ARROW, token)
@@ -228,17 +270,23 @@ def tokenizer(inputLine):
             newToken = Token(Type.QREG, token)
         elif token == "creg":
             newToken = Token(Type.CREG, token)
-        elif token == "pi" or token.isnumeric():
+        elif "pi" in token or token.isnumeric() or ("+" in token or "-" in token or "*" in token or "/" in token):
             if token == "pi":
                 newToken = Token(Type.CONST, np.pi)
-            else:
+            elif token.isnumeric():
                 newToken = Token(Type.CONST, int(token))
+            else: newToken = Token(Type.CONST, token)
         elif token[0] == 'q' and token[1] == '[' and token[2].isnumeric() and token[3] == ']':
-            if tokenList[len(tokenList)-1].getType() == Type.GATE and not(tokenList[len(tokenList)-1].getValue().getControl()):
+            if(prevGate == 'u'):
+                tokenList[prevGateIndex].getValue().setTarget(int(token[2]))
+            elif (tokenList[len(tokenList) - 1].getType() == Type.GATE) and not (
+            tokenList[len(tokenList) - 1].getValue().getControl()):
                 tokenList[len(tokenList) - 1].getValue().setTarget(int(token[2]))
-            elif tokenList[len(tokenList)-1].getType() == Type.GATE and tokenList[len(tokenList)-1].getValue().getControl():
+            elif tokenList[len(tokenList) - 1].getType() == Type.GATE and tokenList[
+                len(tokenList) - 1].getValue().getControl():
                 tokenList[len(tokenList) - 1].getValue().setControl(int(token[2]))
-            elif tokenList[len(tokenList) - 1].getType() == Type.QUBIT and tokenList[len(tokenList) - 2].getType() == Type.GATE and tokenList[len(tokenList) - 2].getValue().getControl():
+            elif tokenList[len(tokenList) - 1].getType() == Type.QUBIT and tokenList[
+                len(tokenList) - 2].getType() == Type.GATE and tokenList[len(tokenList) - 2].getValue().getControl():
                 tokenList[len(tokenList) - 2].getValue().setTarget(int(token[2]))
             elif tokenList[len(tokenList) - 1].getType() == Type.GATE:
                 tokenList[len(tokenList) - 1].getValue().setTarget(int(token[2]))
@@ -257,13 +305,14 @@ def tokenizer(inputLine):
                 newToken = Token(Type.RPARAN, token)
         else:
             newToken = Token(Type.INV, token)
-
+        print("Adding the type: " + str(newToken.getType()) + " and the value " + str(newToken.getValue()))
         tokenList.append(newToken)
+        count = count + 1
 
     return tokenList
 
-def parseGate(token):
 
+def parseGate(token):
     if token == 'id':
         newGate = Gate(GateType.IDENTITY, -1, False, -1, None)
     elif token == 'h':
@@ -276,14 +325,23 @@ def parseGate(token):
         newGate = Gate(GateType.PAULI_Z, -1, False, -1, None)
     elif token == 'cx':
         newGate = Gate(GateType.PAULI_X, -1, True, -1, None)
-
+    elif token == 'u':
+        newGate = Gate(GateType.UNITARY, -1, False, -1, None)
+    elif token == 'rx':
+        newGate = Gate(GateType.ROTATE_X, -1, False, -1, None)
+    elif token == 'ry':
+        newGate = Gate(GateType.ROTATE_Y, -1, False, -1, None)
+    elif token == 'rz':
+        newGate = Gate(GateType.ROTATE_Z, -1, False, -1, None)
     return newGate
+
 
 def customDelim(input):
     inputString = input
     for delim in ',;()':
         inputString = inputString.replace(delim, ' ')
     return inputString.split()
+
 
 def result(filepath, shots):
     with open(filepath) as fp:
@@ -300,6 +358,13 @@ def result(filepath, shots):
                 elif tok.getType() == Type.GATE:
                     if tok.getValue().getControl():
                         applyCGate(tok.getValue())
+                    elif tok.getValue().getGType() == GateType.UNITARY:
+                        theta = parseTheta(curTokList, i)
+                        phi = parsePhi(curTokList, thetaIndex)
+                        lmbda = parseLambda(curTokList, phiIndex)
+                        params = [theta, phi, lmbda]
+                        tok.getValue().setParams(params)
+                        applySingleGate(tok.getValue())
                     else:
                         applySingleGate(tok.getValue())
                 elif tok.getType() == Type.MEASURE and curTokList[i + 2].getType() == Type.ARROW:
@@ -307,13 +372,64 @@ def result(filepath, shots):
                 else:
                     continue
 
-# For simple by-hand testing:
+def parseTheta(curTokList, i):
+    j = i + 1
+    tok = curTokList[j]
+    prevTok = tok.getType()
+    stringToParse = str(tok.getValue())
+    global thetaIndex
+    while(j < len(curTokList)):
+        if(curTokList[j].getType() == Type.CONST and prevTok == Type.CONST):
+            break
+        else:
+            stringToParse = stringToParse + str(curTokList[j].getValue())
+        prevTok = curTokList[j].getType()
+        j = j + 1
+    thetaIndex = j
+    return eval(stringToParse)
+
+def parsePhi(curTokList, i):
+    j = i + 1
+    tok = curTokList[j]
+    prevTok = tok.getType()
+    stringToParse = str(tok.getValue())
+    global phiIndex
+    while(j < len(curTokList)):
+        if(curTokList[j].getType() == Type.CONST and prevTok == Type.CONST):
+            break
+        else:
+            stringToParse = stringToParse + str(curTokList[j].getValue())
+        prevTok = curTokList[j].getType()
+        j = j + 1
+    phiIndex = j
+    return eval(stringToParse)
+
+def parseLambda(curTokList, i):
+    j = i + 1
+    tok = curTokList[j]
+    prevTok = tok.getType()
+    stringToParse = str(tok.getValue())
+    j = j + 1
+    while(j < len(curTokList)):
+        if(curTokList[j].getType() == Type.CONST and prevTok == Type.CONST):
+            break
+        else:
+            stringToParse = stringToParse + str(curTokList[j].getValue())
+        prevTok = curTokList[j].getType()
+        j = j + 1
+    return eval(stringToParse)
+
+
+
+
+
 def main():
     if len(argv) < 3:
         print(f"usage: {argv[0]} <file>")
     filepath = argv[1]
     shots = argv[2]
     result(filepath, shots)
+
 
 if __name__ == '__main__':
     main()
