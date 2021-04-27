@@ -522,7 +522,7 @@ def parsePhi(curTokList, i):
     phiIndex = j
     return eval(stringToParse)
 
-#parsePhi() - Takes as input a tokenlist and a position in the token array and evaluates the expression specified for the lambda positional argument
+#parseLambda() - Takes as input a tokenlist and a position in the token array and evaluates the expression specified for the lambda positional argument
 
 def parseLambda(curTokList, i):
     j = i + 1
