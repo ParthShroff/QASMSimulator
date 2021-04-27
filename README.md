@@ -25,4 +25,4 @@ optional arguments:
 ```
 
 ## Simulation
-Pull requests are welcome. Our focus was to simulate Bell's Inequality but the compiler is general purpose
+Our focus was to simulate Bell's Inequality but the compiler is general purpose
