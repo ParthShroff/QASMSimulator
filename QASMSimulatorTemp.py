@@ -1,7 +1,7 @@
 from sys import argv
 from enum import Enum
 import numpy as np
-from matplotlib import pyplot
+from matplotlib import pyplot as plt
 import random
 import itertools
 
@@ -18,8 +18,8 @@ p = 0.02
 # flag parameters
 is_noisy = False
 verbose = False
-show_prob_hist = False
-show_shots_hist = False
+show_prob_graph = True
+show_shots_graph = True
 
 thetaIndex = 0
 phiIndex = 0
@@ -291,25 +291,39 @@ def show_data(prob, shots_per_state):
         print("    Shots(|" + str(''.join(binary_states[i]) + ">) = " + str(shots_per_state[i])))
 
     
-    if show_prob_hist == True:
-        probability_histogram(prob)
-    if show_shots_hist == True:
-        shots_histogram(shots_per_state)
+    if show_prob_graph == True:
+        probability_bargraph(prob)
+    if show_shots_graph == True:
+        shots_bargraph(shots_per_state)
 
-def probability_histogram(prob):
+# probability_bargraph() - Displays the bar graph for the probabilities of each quantum state outcome
+# Parameter - prob (numpy.ndarray List) is a list containing the probabilities for each corresponding
+#               outcome
+# Effect: None
+def probability_bargraph(prob):
     binary_states = []
     for b in list(itertools.product('01', repeat=n)):
-        binary_states.append(''.join(b))
+        binary_states.append('|' + ''.join(b) + '>')
 
-    pyplot.bar(binary_states, prob)
-    pyplot.show()
+    plt.xlabel('Measurement Outcome', fontsize=12)
+    plt.ylabel('Theoretical Probability', fontsize=12)
+    plt.bar(binary_states, prob)
+    plt.show()
 
-def shots_histogram(shots_per_state):
+
+# shots_bargraph() - Displays the bar graph for the shot frequency of each quantum state outcome
+# Parameter - shots_per_state (int List) is a list containing the frequency for each corresponding
+#               outcome
+# Effect: None
+def shots_bargraph(shots_per_state):
     binary_states = []
     for b in list(itertools.product('01', repeat=n)):
-        binary_states.append(''.join(b))
-    pyplot.bar(binary_states, shots_per_state)
-    pyplot.show()
+        binary_states.append('|' + ''.join(b) + '>')
+
+    plt.xlabel('Measurement Outcome', fontsize=12)
+    plt.ylabel('Shot Frequency', fontsize=12)
+    plt.bar(binary_states, shots_per_state)
+    plt.show()
 
 
 def tokenizer(inputLine):
