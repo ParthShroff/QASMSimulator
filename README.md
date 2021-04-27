@@ -1,6 +1,6 @@
 # QASMSimulator
 
-QASMSimulatorTemp is our implementation of a general purpose QASM compiler (OPENQASM).
+QASMSimulator is our implementation of a general purpose QASM compiler (OPENQASM).
 The compiler was made by Parth Shroff and Richard Noh. The test cases and Bell's Inequality analysis was done by Aaron Cheung
 
 
