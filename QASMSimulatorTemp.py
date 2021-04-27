@@ -89,8 +89,6 @@ class Type(Enum):
     MEASURE = 7
     ARROW = 8
     OP = 9
-    LPARAN = 10
-    RPARAN = 11
     CONST = 12
 
 
@@ -371,20 +369,23 @@ def tokenizer(inputLine):
                 newToken = Token(Type.CONST, token)
         elif token[0] == 'q' and token[1] == '[' and token[2].isnumeric() and token[3] == ']':
             if prevGate == 'u':
-                tokenList[prevGateIndex].getValue().setTarget(int(token[2]))
+                tokenList[prevGateIndex].getValue().setTarget(int(token[2])) # Sets default qubit parameter (target qubit) unitary matrices
+
             elif prevGate == 'rx' or prevGate == 'ry' or prevGate == 'rz':
-                tokenList[prevGateIndex].getValue().setTarget(int(token[2]))
-            elif tokenList[len(tokenList) - 1].getType() == Type.GATE and not (
-                    tokenList[len(tokenList) - 1].getValue().getControl()):
-                tokenList[len(tokenList) - 1].getValue().setTarget(int(token[2]))
-            elif tokenList[len(tokenList) - 1].getType() == Type.GATE and tokenList[
-                len(tokenList) - 1].getValue().getControl():
-                tokenList[len(tokenList) - 1].getValue().setControl(int(token[2]))
-            elif tokenList[len(tokenList) - 1].getType() == Type.QUBIT and tokenList[
-                len(tokenList) - 2].getType() == Type.GATE and tokenList[len(tokenList) - 2].getValue().getControl():
-                tokenList[len(tokenList) - 2].getValue().setTarget(int(token[2]))
+                tokenList[prevGateIndex].getValue().setTarget(int(token[2])) # Sets default qubit parameter (target qubit) rotate matrices
+
+            elif tokenList[len(tokenList) - 1].getType() == Type.GATE and not (tokenList[len(tokenList) - 1].getValue().getControl()):
+                tokenList[len(tokenList) - 1].getValue().setTarget(int(token[2])) # Sets the default single qubit parameter (target field) for any other gate
+
+            elif tokenList[len(tokenList) - 1].getType() == Type.GATE and tokenList[len(tokenList) - 1].getValue().getControl():
+                tokenList[len(tokenList) - 1].getValue().setControl(int(token[2])) # Sets the control qubit for a control gate
+
+            elif tokenList[len(tokenList) - 1].getType() == Type.QUBIT and tokenList[len(tokenList) - 2].getType() == Type.GATE and tokenList[len(tokenList) - 2].getValue().getControl():
+                tokenList[len(tokenList) - 2].getValue().setTarget(int(token[2])) # Sets the target qubit for a control gate
+
             elif tokenList[len(tokenList) - 1].getType() == Type.GATE:
-                tokenList[len(tokenList) - 1].getValue().setTarget(int(token[2]))
+                tokenList[len(tokenList) - 1].getValue().setTarget(int(token[2])) # Sets the default single qubit parameter (target field) for any other gate
+
             newToken = Token(Type.QUBIT, token[2])
 
         elif token[0] == 'c' and token[1] == '[' and token[2].isnumeric() and token[3] == ']':
@@ -393,11 +394,6 @@ def tokenizer(inputLine):
             newToken = Token(Type.MEASURE, token)
         elif token == '+' or token == '-' or token == '*' or token == '/':
             newToken = Token(Type.OP, token)
-        elif token == '(' or token == ')':
-            if token == '(':
-                newToken = Token(Type.LPARAN, token)
-            else:
-                newToken = Token(Type.RPARAN, token)
         else:
             newToken = Token(Type.INV, token)
         tokenList.append(newToken)
@@ -406,8 +402,7 @@ def tokenizer(inputLine):
     return tokenList
 
 
-# parseGate() - Returns an initial gate object
-#
+# parseGate() - Returns an initial gate object for each token ID
 
 def parseGate(token):
     if token == 'id':
@@ -433,14 +428,18 @@ def parseGate(token):
     return newGate
 
 
+# customDelim() - Takes an input string and separates string based on ',', ';', '(', ')'
+
 def customDelim(input):
     inputString = input
     for delim in ',;()':
         inputString = inputString.replace(delim, ' ')
     return inputString.split()
 
+# parseTokens() - Takes in a file directory as an input
+# tokenizes the input line by line and performs respect operations by update Gate Objects and calling Gate Operations
 
-def result(filepath):
+def parseTokens(filepath):
     with open(filepath) as fp:
         for line in fp:
             curTokList = tokenizer(line)
@@ -474,6 +473,7 @@ def result(filepath):
                 else:
                     continue
 
+#parseTheta() - Takes as input a tokenlist and a position in the token array and evaluates the expression specified for the theta positional argument
 
 def parseTheta(curTokList, i):
     j = i + 1
@@ -498,6 +498,8 @@ def parseTheta(curTokList, i):
     return eval(stringToParse)
 
 
+#parsePhi() - Takes as input a tokenlist and a position in the token array and evaluates the expression specified for the phi positional argument
+
 def parsePhi(curTokList, i):
     j = i + 1
     tok = curTokList[j]
@@ -520,6 +522,7 @@ def parsePhi(curTokList, i):
     phiIndex = j
     return eval(stringToParse)
 
+#parsePhi() - Takes as input a tokenlist and a position in the token array and evaluates the expression specified for the lambda positional argument
 
 def parseLambda(curTokList, i):
     j = i + 1
@@ -582,7 +585,7 @@ def main():
     verbose = results.isVerbose
     show_prob_graph = results.showGraph
     show_shots_graph = results.showShots
-    result(filepath)
+    parseTokens(filepath)
 
 
 if __name__ == '__main__':
