@@ -1,12 +1,13 @@
 # QASMSimulator
 
-QASMSimulatorTemp is our implementation of a general purpose QASM compiler (OPENQASM)
+QASMSimulatorTemp is our implementation of a general purpose QASM compiler (OPENQASM).
+The compiler was made by Parth Shroff and Richard Noh. 
 
 
 
 ## Usage
 
-```python
+```
 usage: QASMSimulatorTemp.py [-h] [-n] [-v] [-g] [-s] filepath shots
 
 Run QASM Compiler
