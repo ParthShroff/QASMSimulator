@@ -42,7 +42,6 @@ class Gate:
         self.target = target
     def setControl(self, control):
         self.control = control
-
     def setParams(self, params):
         self.parameters = params
 
@@ -173,7 +172,7 @@ def applyCGate(gate):
         raise Exception("applyCGate(): target (" + str(target_index) + ") != control (" + str(control_index) + ")")
 
     # Select the gate
-    gate_matrix = getGateMatrix(gate.gtype)  # gate with GateType PAULI_X and is_control=True == CNOT
+    gate_matrix = getGateMatrix(gate)  # gate with GateType PAULI_X and is_control=True == CNOT
 
     # useful matrices
     identity = np.array([[1, 0],
@@ -251,6 +250,8 @@ def tokenizer(inputLine):
         elif token[0] == 'q' and token[1] == '[' and token[2].isnumeric() and token[3] == ']':
             if(prevGate == 'u'):
                 tokenList[prevGateIndex].getValue().setTarget(int(token[2]))
+            elif(prevGate == 'rx' or prevGate == 'ry' or prevGate == 'rz'):
+                tokenList[prevGateIndex].getValue().setTarget(int(token[2]))
             elif tokenList[len(tokenList)-1].getType() == Type.GATE and not(tokenList[len(tokenList)-1].getValue().getControl()):
                 tokenList[len(tokenList) - 1].getValue().setTarget(int(token[2]))
             elif tokenList[len(tokenList)-1].getType() == Type.GATE and tokenList[len(tokenList)-1].getValue().getControl():
@@ -274,6 +275,7 @@ def tokenizer(inputLine):
                 newToken = Token(Type.RPARAN, token)
         else:
             newToken = Token(Type.INV, token)
+        print("The type of the token is: " + str(newToken.getType()) + " and value is: " + str(newToken.getValue()))
         tokenList.append(newToken)
         count = count + 1
 
@@ -281,7 +283,6 @@ def tokenizer(inputLine):
 
 
 def parseGate(token):
-
     if token == 'id':
         newGate = Gate(GateType.IDENTITY, -1, False, -1, None)
     elif token == 'h':
@@ -343,7 +344,7 @@ def result(filepath, shots):
                         applySingleGate(tok.getValue())
                 elif tok.getType() == Type.MEASURE and curTokList[i + 2].getType() == Type.ARROW:
                     measure_state()
-                    print("   Final state: " + str(list(np.round(q_state, 3))))
+                    #print("   Final state: " + str(list(np.round(q_state, 3))))
                 else:
                     continue
 
