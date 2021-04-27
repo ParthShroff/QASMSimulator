@@ -1,10 +1,10 @@
 from sys import argv
 from enum import Enum
 import numpy as np
+from matplotlib import pyplot
 import random
 import itertools
-import warnings
-warnings.filterwarnings('ignore')
+
 # stores the amplitudes of all possible quantum states, like |000> and |101> for a 3 qubit state
 q_state = []
 # the number of qubits q_state represents
@@ -16,10 +16,10 @@ shots = 0
 p = 0.02
 
 # flag parameters
-is_noisy = True
-verbose = True
-show_prob_hist = True
-show_shots_hist = True
+is_noisy = False
+verbose = False
+show_prob_hist = False
+show_shots_hist = False
 
 thetaIndex = 0
 phiIndex = 0
@@ -262,7 +262,7 @@ def measure_state():
     
     # fill out the theoretical probabilities
     for state in q_state:
-        prob.append(np.square(state))
+        prob.append(np.real(np.square(state)))
 
     # print out the probabilities
     show_data(prob, shots_per_state)
@@ -276,25 +276,40 @@ def measure_state():
 # Effect: None
 def show_data(prob, shots_per_state):
     print("Final state: " + str(list(np.round(q_state, 3))), end='\n\n')
-        binary_states = list(itertools.product('01', repeat=n))
+    binary_states = list(itertools.product('01', repeat=n))
     if verbose == True:
         print("Theoretical Probabilities")
         for i in range(2**n):
-            print("    Pr(|" + str(''.join(binary_states[i]) + ">) = " + str(np.real(prob[i]))))
+            print("    Pr(|" + str(''.join(binary_states[i]) + ">) = " + str(prob[i])))
         print("\nActual Probabilities")
         for i in range(2**n):
             print("    Pr(|" + str(''.join(binary_states[i]) + ">) = " + str(shots_per_state[i] / shots)))
         print()
 
-    print("\nShots Taken")
+    print("Shots Taken")
     for i in range(2**n):
         print("    Shots(|" + str(''.join(binary_states[i]) + ">) = " + str(shots_per_state[i])))
 
     
-    if show_prob_hist:
-        pass
-    if show_shots_hist:
-        pass
+    if show_prob_hist == True:
+        probability_histogram(prob)
+    if show_shots_hist == True:
+        shots_histogram(shots_per_state)
+
+def probability_histogram(prob):
+    binary_states = []
+    for b in list(itertools.product('01', repeat=n)):
+        binary_states.append(''.join(b))
+
+    pyplot.bar(binary_states, prob)
+    pyplot.show()
+
+def shots_histogram(shots_per_state):
+    binary_states = []
+    for b in list(itertools.product('01', repeat=n)):
+        binary_states.append(''.join(b))
+    pyplot.bar(binary_states, shots_per_state)
+    pyplot.show()
 
 
 def tokenizer(inputLine):
