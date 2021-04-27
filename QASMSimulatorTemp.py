@@ -275,7 +275,6 @@ def tokenizer(inputLine):
                 newToken = Token(Type.RPARAN, token)
         else:
             newToken = Token(Type.INV, token)
-        print("The type of the token is: " + str(newToken.getType()) + " and value is: " + str(newToken.getValue()))
         tokenList.append(newToken)
         count = count + 1
 
@@ -344,7 +343,7 @@ def result(filepath, shots):
                         applySingleGate(tok.getValue())
                 elif tok.getType() == Type.MEASURE and curTokList[i + 2].getType() == Type.ARROW:
                     measure_state()
-                    #print("   Final state: " + str(list(np.round(q_state, 3))))
+                    print("   Final state: " + str(list(np.round(q_state, 3))))
                 else:
                     continue
 
