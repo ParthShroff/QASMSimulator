@@ -1,11 +1,26 @@
 from sys import argv
 from enum import Enum
 import numpy as np
-from itertools import combinations  # this is for testing only
+import random
+import itertools
+import warnings
+warnings.filterwarnings('ignore')
 # stores the amplitudes of all possible quantum states, like |000> and |101> for a 3 qubit state
 q_state = []
 # the number of qubits q_state represents
 n = 0
+
+# number of shots to make
+shots = 0
+# internal parameter for noisy gates: p = 0 unchanged q_state, p = 1 completely changed q_state
+p = 0.02
+
+# flag parameters
+is_noisy = True
+verbose = True
+show_prob_hist = True
+show_shots_hist = True
+
 thetaIndex = 0
 phiIndex = 0
 
@@ -214,12 +229,72 @@ def applyCGate(gate):
     global q_state
     q_state = np.matmul(resultant_matrix, q_state)
 
-# measure_state() - measures the entire quantum state for each possible outcome
-# assumes the QASM file applies the measurement to all qubits
-# Effect: zeros out q_state to represent a total wave function collapse
-# Return: probability array of size 2^n
+# measure_state() - measures the entire quantum state for each possible outcome and collapses the state (end of program)
+# Assumes the QASM file applies the measurement to all qubits.
+# Calls the show_data method
+# Effect: exits out the program
 def measure_state():
-    pass #TODO
+    prob = []
+    shots_per_state = []
+    global q_state
+    global p
+
+    if is_noisy == True:
+        temp_q_state = np.copy(q_state)
+        # apply a random unitary gate for each qubit
+        for i in range(n):
+            theta = np.arccos(1 - 2 * random.uniform(0, 1) * p)
+            phi   = p * (2 * random.uniform(0, 1) - 1) * np.pi
+            lmbda = p * (2 * random.uniform(0, 1) - 1) * np.pi
+            noisy_gate = Gate(GateType.UNITARY, i, False, -1, [theta, phi, lmbda])
+            applySingleGate(noisy_gate)
+
+        # distribute the shots according to the randomized state
+        for state in q_state:
+            shots_per_state.append(int(shots * np.square(state)))
+        
+        # restore q_state to its original state
+        q_state = np.copy(temp_q_state) 
+    else:
+        # distribute the shots according to the state
+        for state in q_state:
+            shots_per_state.append(int(shots * np.square(state)))
+    
+    # fill out the theoretical probabilities
+    for state in q_state:
+        prob.append(np.square(state))
+
+    # print out the probabilities
+    show_data(prob, shots_per_state)
+
+    # "collapse" quantum state
+    exit()
+
+# show_data() - Prints to stdout the final state and distribution of shots
+# If the verbose argument is true, print out the theoretical and actual probabilities
+# If the histograms arguments are true, shows the histogram in a window
+# Effect: None
+def show_data(prob, shots_per_state):
+    print("Final state: " + str(list(np.round(q_state, 3))), end='\n\n')
+        binary_states = list(itertools.product('01', repeat=n))
+    if verbose == True:
+        print("Theoretical Probabilities")
+        for i in range(2**n):
+            print("    Pr(|" + str(''.join(binary_states[i]) + ">) = " + str(np.real(prob[i]))))
+        print("\nActual Probabilities")
+        for i in range(2**n):
+            print("    Pr(|" + str(''.join(binary_states[i]) + ">) = " + str(shots_per_state[i] / shots)))
+        print()
+
+    print("\nShots Taken")
+    for i in range(2**n):
+        print("    Shots(|" + str(''.join(binary_states[i]) + ">) = " + str(shots_per_state[i])))
+
+    
+    if show_prob_hist:
+        pass
+    if show_shots_hist:
+        pass
 
 
 def tokenizer(inputLine):
@@ -343,7 +418,6 @@ def result(filepath, shots):
                         applySingleGate(tok.getValue())
                 elif tok.getType() == Type.MEASURE and curTokList[i + 2].getType() == Type.ARROW:
                     measure_state()
-                    print("   Final state: " + str(list(np.round(q_state, 3))))
                 else:
                     continue
 
@@ -424,7 +498,8 @@ def main():
     if len(argv) < 3:
         print(f"usage: {argv[0]} <file>")
     filepath = argv[1]
-    shots = argv[2]
+    global shots
+    shots = int(argv[2])
     result(filepath, shots)
 
 
