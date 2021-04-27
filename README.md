@@ -8,7 +8,7 @@ The compiler was made by Parth Shroff and Richard Noh. The test cases and Bell's
 ## Usage
 
 ```
-usage: QASMSimulatorTemp.py [-h] [-n] [-v] [-g] [-s] filepath shots
+QASMSimulatorTemp.py [-h] [-n] [-v] [-g] [-s] filepath shots
 
 Run QASM Compiler
 
