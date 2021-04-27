@@ -1,13 +1,27 @@
 from sys import argv
 from enum import Enum
 import numpy as np
-from itertools import combinations  # this is for testing only
+from matplotlib import pyplot as plt
+import random
+import itertools
+import argparse
+
 # stores the amplitudes of all possible quantum states, like |000> and |101> for a 3 qubit state
 q_state = []
 # the number of qubits q_state represents
 n = 0
 thetaIndex = 0
 phiIndex = 0
+# number of shots to make
+shots = 0
+# internal parameter for noisy gates: p = 0 unchanged q_state, p = 1 completely changed q_state
+p = 0.02
+
+# flag parameters
+is_noisy = False
+verbose = False
+show_prob_graph = False
+show_shots_graph = False
 
 
 # GateType - an enum for the various supported gates of our QASM simulator
@@ -21,6 +35,8 @@ class GateType(Enum):
     ROTATE_Y = 6
     ROTATE_Z = 7
     UNITARY = 8
+
+
 # Gate - a simple data type that stores the operator and operands of each gate
 #   gtype       - (enum GateType) for each supported quantum gate
 #   target      - (int) the index of the target qubit, also the operand of single qubit gates
@@ -34,14 +50,19 @@ class Gate:
         self.is_control = is_control
         self.control = control
         self.parameters = parameters
+
     def getGType(self):
         return self.gtype
+
     def getControl(self):
         return self.is_control
+
     def setTarget(self, target):
         self.target = target
+
     def setControl(self, control):
         self.control = control
+
     def setParams(self, params):
         self.parameters = params
 
@@ -50,8 +71,10 @@ class Token:
     def __init__(self, type, value):
         self.type = type
         self.value = value
+
     def getType(self):
         return self.type
+
     def getValue(self):
         return self.value
 
@@ -81,6 +104,8 @@ def init_state():
     global q_state
     q_state = np.zeros(2 ** n, dtype=complex)
     q_state[0] = 1 + 0j
+
+
 # getGateType() - returns the matrix representation of a quantum gate
 #   Parameter: gate_type - (enum GateType) a quantum gate
 #   Return: (2 dimensional np.array) the matrix representation of gate_type
@@ -126,6 +151,7 @@ def getGateMatrix(gate):
     else:
         raise Exception("getGateMatrix(): unsupported Gate operation (" + str(gate_type) + ")")
 
+
 # applySingleGate() - Applies a single-qubit gate to the quantum state
 #   Parameters: gate - (type Gate) the gate to apply
 #   Effect: updates q_state with the gate operation
@@ -154,6 +180,8 @@ def applySingleGate(gate):
     # matrix multiply with the quantum state
     global q_state
     q_state = np.matmul(resultant_matrix, q_state)
+
+
 # applyCGate() - Applies a control gate to the quantum state
 #   Parameters: gate - (type Gate) the gate to apply
 #               target - (int) the qubit index to apply the gate to
@@ -214,13 +242,106 @@ def applyCGate(gate):
     global q_state
     q_state = np.matmul(resultant_matrix, q_state)
 
-# measure_state() - measures the entire quantum state for each possible outcome
-# assumes the QASM file applies the measurement to all qubits
-# Effect: zeros out q_state to represent a total wave function collapse
-# Return: probability array of size 2^n
-def measure_state():
-    pass #TODO
 
+# measure_state() - measures the entire quantum state for each possible outcome and collapses the state (end of program)
+# Assumes the QASM file applies the measurement to all qubits.
+# Calls the show_data method
+# Effect: exits out the program
+def measure_state():
+    prob = []
+    shots_per_state = []
+    global q_state
+    global p
+
+    if is_noisy == True:
+        temp_q_state = np.copy(q_state)
+        # apply a random unitary gate for each qubit
+        for i in range(n):
+            theta = np.arccos(1 - 2 * random.uniform(0, 1) * p)
+            phi = p * (2 * random.uniform(0, 1) - 1) * np.pi
+            lmbda = p * (2 * random.uniform(0, 1) - 1) * np.pi
+            noisy_gate = Gate(GateType.UNITARY, i, False, -1, [theta, phi, lmbda])
+            applySingleGate(noisy_gate)
+
+        # distribute the shots according to the randomized state
+        for state in q_state:
+            shots_per_state.append(int(shots * np.square(state)))
+
+        # restore q_state to its original state
+        q_state = np.copy(temp_q_state)
+    else:
+        # distribute the shots according to the state
+        for state in q_state:
+            shots_per_state.append(int(shots * np.square(state)))
+
+    # fill out the theoretical probabilities
+    for state in q_state:
+        prob.append(np.real(np.square(state)))
+
+    # print out the probabilities
+    show_data(prob, shots_per_state)
+
+    # "collapse" quantum state
+    exit()
+
+
+# show_data() - Prints to stdout the final state and distribution of shots
+# If the verbose argument is true, print out the theoretical and actual probabilities
+# If the histograms arguments are true, shows the histogram in a window
+# Effect: None
+def show_data(prob, shots_per_state):
+    print("Final state: " + str(list(np.round(q_state, 3))), end='\n\n')
+    binary_states = list(itertools.product('01', repeat=n))
+    if verbose == True:
+        print("Theoretical Probabilities")
+        for i in range(2 ** n):
+            print("    Pr(|" + str(''.join(binary_states[i]) + ">) = " + str(prob[i])))
+        print("\nActual Probabilities")
+        for i in range(2 ** n):
+            print("    Pr(|" + str(''.join(binary_states[i]) + ">) = " + str(shots_per_state[i] / shots)))
+        print()
+
+    print("Shots Taken")
+    for i in range(2 ** n):
+        print("    Shots(|" + str(''.join(binary_states[i]) + ">) = " + str(shots_per_state[i])))
+
+    if show_prob_graph == True:
+        probability_bargraph(prob)
+    if show_shots_graph == True:
+        shots_bargraph(shots_per_state)
+
+
+# probability_bargraph() - Displays the bar graph for the probabilities of each quantum state outcome
+# Parameter - prob (numpy.ndarray List) is a list containing the probabilities for each corresponding
+#               outcome
+# Effect: None
+def probability_bargraph(prob):
+    binary_states = []
+    for b in list(itertools.product('01', repeat=n)):
+        binary_states.append('|' + ''.join(b) + '>')
+
+    plt.xlabel('Measurement Outcome', fontsize=12)
+    plt.ylabel('Theoretical Probability', fontsize=12)
+    plt.bar(binary_states, prob)
+    plt.show()
+
+
+# shots_bargraph() - Displays the bar graph for the shot frequency of each quantum state outcome
+# Parameter - shots_per_state (int List) is a list containing the frequency for each corresponding
+#               outcome
+# Effect: None
+def shots_bargraph(shots_per_state):
+    binary_states = []
+    for b in list(itertools.product('01', repeat=n)):
+        binary_states.append('|' + ''.join(b) + '>')
+
+    plt.xlabel('Measurement Outcome', fontsize=12)
+    plt.ylabel('Shot Frequency', fontsize=12)
+    plt.bar(binary_states, shots_per_state)
+    plt.show()
+
+
+# tokenizer() - tokenizes the input QASM file
 
 def tokenizer(inputLine):
     tokenList = []
@@ -246,17 +367,21 @@ def tokenizer(inputLine):
                 newToken = Token(Type.CONST, np.pi)
             elif token.isnumeric():
                 newToken = Token(Type.CONST, int(token))
-            else: newToken = Token(Type.CONST, token)
+            else:
+                newToken = Token(Type.CONST, token)
         elif token[0] == 'q' and token[1] == '[' and token[2].isnumeric() and token[3] == ']':
-            if(prevGate == 'u'):
+            if prevGate == 'u':
                 tokenList[prevGateIndex].getValue().setTarget(int(token[2]))
-            elif(prevGate == 'rx' or prevGate == 'ry' or prevGate == 'rz'):
+            elif prevGate == 'rx' or prevGate == 'ry' or prevGate == 'rz':
                 tokenList[prevGateIndex].getValue().setTarget(int(token[2]))
-            elif tokenList[len(tokenList)-1].getType() == Type.GATE and not(tokenList[len(tokenList)-1].getValue().getControl()):
+            elif tokenList[len(tokenList) - 1].getType() == Type.GATE and not (
+                    tokenList[len(tokenList) - 1].getValue().getControl()):
                 tokenList[len(tokenList) - 1].getValue().setTarget(int(token[2]))
-            elif tokenList[len(tokenList)-1].getType() == Type.GATE and tokenList[len(tokenList)-1].getValue().getControl():
+            elif tokenList[len(tokenList) - 1].getType() == Type.GATE and tokenList[
+                len(tokenList) - 1].getValue().getControl():
                 tokenList[len(tokenList) - 1].getValue().setControl(int(token[2]))
-            elif tokenList[len(tokenList) - 1].getType() == Type.QUBIT and tokenList[len(tokenList) - 2].getType() == Type.GATE and tokenList[len(tokenList) - 2].getValue().getControl():
+            elif tokenList[len(tokenList) - 1].getType() == Type.QUBIT and tokenList[
+                len(tokenList) - 2].getType() == Type.GATE and tokenList[len(tokenList) - 2].getValue().getControl():
                 tokenList[len(tokenList) - 2].getValue().setTarget(int(token[2]))
             elif tokenList[len(tokenList) - 1].getType() == Type.GATE:
                 tokenList[len(tokenList) - 1].getValue().setTarget(int(token[2]))
@@ -281,6 +406,9 @@ def tokenizer(inputLine):
     return tokenList
 
 
+# parseGate() - Returns an initial gate object
+#
+
 def parseGate(token):
     if token == 'id':
         newGate = Gate(GateType.IDENTITY, -1, False, -1, None)
@@ -302,8 +430,8 @@ def parseGate(token):
         newGate = Gate(GateType.ROTATE_Y, -1, False, -1, None)
     elif token == 'rz':
         newGate = Gate(GateType.ROTATE_Z, -1, False, -1, None)
-
     return newGate
+
 
 def customDelim(input):
     inputString = input
@@ -312,7 +440,7 @@ def customDelim(input):
     return inputString.split()
 
 
-def result(filepath, shots):
+def result(filepath):
     with open(filepath) as fp:
         for line in fp:
             curTokList = tokenizer(line)
@@ -343,24 +471,24 @@ def result(filepath, shots):
                         applySingleGate(tok.getValue())
                 elif tok.getType() == Type.MEASURE and curTokList[i + 2].getType() == Type.ARROW:
                     measure_state()
-                    print("   Final state: " + str(list(np.round(q_state, 3))))
                 else:
                     continue
+
 
 def parseTheta(curTokList, i):
     j = i + 1
     tok = curTokList[j]
     prevTok = tok.getType()
-    if(type(tok.getValue()) == str and "pi" in tok.getValue()):
+    if type(tok.getValue()) == str and "pi" in tok.getValue():
         stringToParse = parseWithPi(tok.getValue())
     else:
         stringToParse = str(tok.getValue())
     global thetaIndex
-    while(j < len(curTokList)):
-        if(curTokList[j].getType() == Type.CONST and prevTok == Type.CONST):
+    while j < len(curTokList):
+        if curTokList[j].getType() == Type.CONST and prevTok == Type.CONST:
             break
         else:
-            if (type(tok.getValue()) == str and "pi" in curTokList[j].getValue()):
+            if type(tok.getValue()) == str and "pi" in curTokList[j].getValue():
                 stringToParse = parseWithPi(curTokList[j].getValue())
             else:
                 stringToParse = stringToParse + str(curTokList[j].getValue())
@@ -369,20 +497,21 @@ def parseTheta(curTokList, i):
     thetaIndex = j
     return eval(stringToParse)
 
+
 def parsePhi(curTokList, i):
     j = i + 1
     tok = curTokList[j]
     prevTok = tok.getType()
-    if (type(tok.getValue()) == str and "pi" in tok.getValue()):
+    if type(tok.getValue()) == str and "pi" in tok.getValue():
         stringToParse = parseWithPi(tok.getValue())
     else:
         stringToParse = str(tok.getValue())
     global phiIndex
-    while(j < len(curTokList)):
-        if(curTokList[j].getType() == Type.CONST and prevTok == Type.CONST):
+    while j < len(curTokList):
+        if curTokList[j].getType() == Type.CONST and prevTok == Type.CONST:
             break
         else:
-            if (type(tok.getValue()) == str and "pi" in curTokList[j].getValue()):
+            if type(tok.getValue()) == str and "pi" in curTokList[j].getValue():
                 stringToParse = parseWithPi(curTokList[j].getValue())
             else:
                 stringToParse = stringToParse + str(curTokList[j].getValue())
@@ -391,20 +520,21 @@ def parsePhi(curTokList, i):
     phiIndex = j
     return eval(stringToParse)
 
+
 def parseLambda(curTokList, i):
     j = i + 1
     tok = curTokList[j]
     prevTok = tok.getType()
-    if (type(tok.getValue()) == str and "pi" in tok.getValue()):
+    if type(tok.getValue()) == str and "pi" in tok.getValue():
         stringToParse = parseWithPi(tok.getValue())
     else:
         stringToParse = str(tok.getValue())
     j = j + 1
-    while(j < len(curTokList) and (curTokList[j].getType() == Type.CONST or curTokList[j].getType() == Type.OP)):
-        if(curTokList[j].getType() == Type.CONST and prevTok == Type.CONST):
+    while j < len(curTokList) and (curTokList[j].getType() == Type.CONST or curTokList[j].getType() == Type.OP):
+        if curTokList[j].getType() == Type.CONST and prevTok == Type.CONST:
             break
         else:
-            if (type(tok.getValue()) == str and "pi" in curTokList[j].getValue()):
+            if type(tok.getValue()) == str and "pi" in curTokList[j].getValue():
                 stringToParse = parseWithPi(curTokList[j].getValue())
             else:
                 stringToParse = stringToParse + str(curTokList[j].getValue())
@@ -416,16 +546,43 @@ def parseLambda(curTokList, i):
 def parseWithPi(exp):
     index = exp.index('pi')
     piVal = np.pi
-    return exp[0:index] + str(piVal) + exp[index+2:len(exp)]
+    return exp[0:index] + str(piVal) + exp[index + 2:len(exp)]
 
 
-# For simple by-hand testing:
 def main():
     if len(argv) < 3:
         print(f"usage: {argv[0]} <file>")
     filepath = argv[1]
-    shots = argv[2]
-    result(filepath, shots)
+    global shots
+    shots = int(argv[2])
+
+    parser = argparse.ArgumentParser(description='Run QASM Compiler')
+    parser.add_argument('filepath', action="store")
+    parser.add_argument('shots', action="store", type=int)
+    parser.add_argument('-n', action='store_true', default=False,
+                        dest='isNoisy',
+                        help='Enable Noisy Flag')
+    parser.add_argument('-v', action='store_true', default=False,
+                        dest='isVerbose',
+                        help='Enable Verbose Flag')
+    parser.add_argument('-g', action='store_true', default=False,
+                        dest='showGraph',
+                        help='Enable Show Graph Flag')
+    parser.add_argument('-s', action='store_true', default=False,
+                        dest='showShots',
+                        help='Enable Show Shots Flag')
+    results = parser.parse_args()
+
+    global is_noisy
+    global verbose
+    global show_prob_graph
+    global show_shots_graph
+
+    is_noisy = results.isNoisy
+    verbose = results.isVerbose
+    show_prob_graph = results.showGraph
+    show_shots_graph = results.showShots
+    result(filepath)
 
 
 if __name__ == '__main__':
