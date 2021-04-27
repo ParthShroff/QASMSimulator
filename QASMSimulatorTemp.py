@@ -18,8 +18,8 @@ p = 0.02
 # flag parameters
 is_noisy = False
 verbose = False
-show_prob_graph = True
-show_shots_graph = True
+show_prob_graph = False
+show_shots_graph = False
 
 thetaIndex = 0
 phiIndex = 0
