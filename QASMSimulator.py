@@ -18,7 +18,7 @@ n = 0
 # number of shots to make
 shots = 0
 # internal parameter for noisy gates: p = 0 unchanged q_state, p = 1 completely changed q_state
-p = 0.02
+p = 0.03
 
 # flag parameters
 is_noisy = False

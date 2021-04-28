@@ -6,7 +6,7 @@ The compiler was made by Parth Shroff and Richard Noh. The test cases and Bell's
 ## Usage
 
 ```
-QASMSimulatorTemp.py [-h] [-n] [-v] [-g] [-s] filepath shots
+QASMSimulator.py [-h] [-n] [-v] [-g] [-s] filepath shots
 
 Run QASM Compiler
 
