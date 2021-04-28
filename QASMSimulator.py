@@ -4,14 +4,17 @@ import numpy as np
 from matplotlib import pyplot as plt
 import random
 import itertools
+import warnings
 import argparse
+
+# disables the ComplexWarning message
+warnings.filterwarnings('ignore')
 
 # stores the amplitudes of all possible quantum states, like |000> and |101> for a 3 qubit state
 q_state = []
 # the number of qubits q_state represents
 n = 0
-thetaIndex = 0
-phiIndex = 0
+
 # number of shots to make
 shots = 0
 # internal parameter for noisy gates: p = 0 unchanged q_state, p = 1 completely changed q_state
@@ -77,19 +80,6 @@ class Token:
 
     def getValue(self):
         return self.value
-
-
-class Type(Enum):
-    INV = 1
-    QREG = 2
-    CREG = 3
-    GATE = 4
-    QUBIT = 5
-    CBIT = 6
-    MEASURE = 7
-    ARROW = 8
-    OP = 9
-    CONST = 12
 
 
 # init_state() - Initializes the simulated quantum state with the |0> state on each qubit
@@ -213,28 +203,35 @@ def applyCGate(gate):
     # the switch factor is either the 'control' or the 'target'
     zero_proj_switch_factor = zero_proj if control_index > target_index else identity
     one_proj_switch_factor = one_proj if control_index > target_index else gate_matrix
+
     # initial term value
     zero_proj_term = identity if max(target_index, control_index) < n - 1 else zero_proj_switch_factor
     one_proj_term = identity if max(target_index, control_index) < n - 1 else one_proj_switch_factor
+
     # padding for qubits before either the target or control
     for _ in range(n - max(target_index, control_index) - 2):
         zero_proj_term = np.kron(zero_proj_term, identity)
         one_proj_term = np.kron(one_proj_term, identity)
+
     # multiply the switch factor if we didn't already
     if max(target_index, control_index) < n - 1:
         zero_proj_term = np.kron(zero_proj_term, zero_proj_switch_factor)
         one_proj_term = np.kron(one_proj_term, one_proj_switch_factor)
+
     # padding for qubits between the control and target
     for _ in range(max(target_index, control_index) - min(target_index, control_index) - 1):
         zero_proj_term = np.kron(zero_proj_term, identity)
         one_proj_term = np.kron(one_proj_term, identity)
+
     # multiply the opposite switch factor, target or control
     zero_proj_term = np.kron(zero_proj_term, identity if control_index > target_index else zero_proj)
     one_proj_term = np.kron(one_proj_term, gate_matrix if control_index > target_index else one_proj)
+
     # pad the rest of the qubits
     for _ in range(min(target_index, control_index)):  # pad rest of the gate
         zero_proj_term = np.kron(zero_proj_term, identity)
         one_proj_term = np.kron(one_proj_term, identity)
+
     resultant_matrix = zero_proj_term + one_proj_term
     # matrix multiply with the quantum state
     global q_state
@@ -339,8 +336,25 @@ def shots_bargraph(shots_per_state):
     plt.show()
 
 
-# tokenizer() - tokenizes the input QASM file
+class Type(Enum):
+    INV = 1
+    QREG = 2
+    CREG = 3
+    GATE = 4
+    QUBIT = 5
+    CBIT = 6
+    MEASURE = 7
+    ARROW = 8
+    OP = 9
+    CONST = 12
 
+
+# global variables for handling theta and phi parsing
+thetaIndex = 0
+phiIndex = 0
+
+
+# tokenizer() - tokenizes the input QASM file
 def tokenizer(inputLine):
     tokenList = []
     gates = ['h', 'x', 't', 'tdg', 'sdg', 's', 'z', 'p', 'rz', 'rx', 'ry', 'rxx', 'rzz', 'sx', 'sxdg', 'id', 'cx', 'u']
@@ -403,7 +417,6 @@ def tokenizer(inputLine):
 
 
 # parseGate() - Returns an initial gate object for each token ID
-
 def parseGate(token):
     if token == 'id':
         newGate = Gate(GateType.IDENTITY, -1, False, -1, None)
@@ -429,16 +442,15 @@ def parseGate(token):
 
 
 # customDelim() - Takes an input string and separates string based on ',', ';', '(', ')'
-
 def customDelim(input):
     inputString = input
     for delim in ',;()':
         inputString = inputString.replace(delim, ' ')
     return inputString.split()
 
+
 # parseTokens() - Takes in a file directory as an input
 # tokenizes the input line by line and performs respect operations by update Gate Objects and calling Gate Operations
-
 def parseTokens(filepath):
     with open(filepath) as fp:
         for line in fp:
@@ -473,8 +485,8 @@ def parseTokens(filepath):
                 else:
                     continue
 
-#parseTheta() - Takes as input a tokenlist and a position in the token array and evaluates the expression specified for the theta positional argument
 
+#parseTheta() - Takes as input a tokenlist and a position in the token array and evaluates the expression specified for the theta positional argument
 def parseTheta(curTokList, i):
     j = i + 1
     tok = curTokList[j]
@@ -499,7 +511,6 @@ def parseTheta(curTokList, i):
 
 
 #parsePhi() - Takes as input a tokenlist and a position in the token array and evaluates the expression specified for the phi positional argument
-
 def parsePhi(curTokList, i):
     j = i + 1
     tok = curTokList[j]
@@ -523,7 +534,6 @@ def parsePhi(curTokList, i):
     return eval(stringToParse)
 
 #parseLambda() - Takes as input a tokenlist and a position in the token array and evaluates the expression specified for the lambda positional argument
-
 def parseLambda(curTokList, i):
     j = i + 1
     tok = curTokList[j]
@@ -570,10 +580,10 @@ def main():
                         help='Enable Verbose Flag')
     parser.add_argument('-g', action='store_true', default=False,
                         dest='showGraph',
-                        help='Enable Show Graph Flag')
+                        help='Enable Show Probability Graph Flag')
     parser.add_argument('-s', action='store_true', default=False,
                         dest='showShots',
-                        help='Enable Show Shots Flag')
+                        help='Enable Show Shots Graph Flag')
     results = parser.parse_args()
 
     global is_noisy
