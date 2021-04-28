@@ -146,7 +146,7 @@ def getGateMatrix(gate):
 #   Return: nothing
 def applySingleGate(gate):
     target_index = gate.target
-    if gate.is_control == True:
+    if gate.is_control:
         raise Exception("applySingleGate(): must use applyCGate() for control gates")
     if target_index >= n:
         raise Exception("applySingleGate(): target (" + str(target_index)
@@ -178,7 +178,7 @@ def applySingleGate(gate):
 def applyCGate(gate):
     target_index = gate.target
     control_index = gate.control
-    if gate.is_control == False:
+    if not gate.is_control:
         raise Exception("applyCGate(): gate operation must be a control gate")
     if target_index >= n:
         raise Exception("applyCGate(): target (" + str(target_index) + ") must be less than n (" + str(n) + ")")
@@ -248,7 +248,7 @@ def measure_state():
     global q_state
     global p
 
-    if is_noisy == True:
+    if is_noisy:
         temp_q_state = np.copy(q_state)
         # apply a random unitary gate for each qubit
         for i in range(n):
@@ -287,7 +287,7 @@ def measure_state():
 def show_data(prob, shots_per_state):
     print("Final state: " + str(list(np.round(q_state, 3))), end='\n\n')
     binary_states = list(itertools.product('01', repeat=n))
-    if verbose == True:
+    if verbose:
         print("Theoretical Probabilities")
         for i in range(2 ** n):
             print("    Pr(|" + str(''.join(binary_states[i]) + ">) = " + str(prob[i])))
@@ -300,9 +300,9 @@ def show_data(prob, shots_per_state):
     for i in range(2 ** n):
         print("    Shots(|" + str(''.join(binary_states[i]) + ">) = " + str(shots_per_state[i])))
 
-    if show_prob_graph == True:
+    if show_prob_graph:
         probability_bargraph(prob)
-    if show_shots_graph == True:
+    if show_shots_graph:
         shots_bargraph(shots_per_state)
 
 
@@ -357,7 +357,7 @@ phiIndex = 0
 # tokenizer() - tokenizes the input QASM file
 def tokenizer(inputLine):
     tokenList = []
-    gates = ['h', 'x', 't', 'tdg', 'sdg', 's', 'z', 'p', 'rz', 'rx', 'ry', 'rxx', 'rzz', 'sx', 'sxdg', 'id', 'cx', 'u']
+    gates = ['h', 'x', 'y', 'z', 'rz', 'rx', 'ry', 'id', 'cx', 'u']
     splited = customDelim(inputLine)
     prevGate = 'inv'
     prevGateIndex = -1
