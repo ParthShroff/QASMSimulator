@@ -39,3 +39,5 @@ Using these matrices, we are able to simulate entangled states. All other single
 python QASMSimulator.py "test_cases/bell-a'b.txt" 1024 -n -s -p
 
 The command above runs the simulator on the "bell-a'b.txt" file, with 1024 shots, noise enabled, and displays the shots frequency graph and the probability graph.
+
+Note that the program assumes that whenever a measurement command is given, the file is requesing a total state measurement, rather than a partial one. Additionally, if no measurement command is given in a file, the simulator assumes there is such a command at the end of the file.
