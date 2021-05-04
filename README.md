@@ -6,7 +6,7 @@ The compiler was made by Parth Shroff and Richard Noh. The test cases and Bell's
 ## Usage
 
 ```
-QASMSimulator.py [-h] [-n] [-v] [-g] [-s] filepath shots
+QASMSimulator.py filepath shots [-h] [-n] [-v] [-g] [-s]
 
 Run QASM Compiler
 
@@ -34,3 +34,8 @@ Supported quantum gates:
     All single control gate variants (CNOT, CHadamard, etc)
 
 Using these matrices, we are able to simulate entangled states. All other single gate operations can be substituted with an appropriate unitary gate.
+
+# Example
+python QASMSimulator.py "test_cases/bell-a'b.txt" 1024 -n -s -p
+
+The command above runs the simulator on the "bell-a'b.txt" file, with 1024 shots, noise enabled, and displays the shots frequency graph and the probability graph.
